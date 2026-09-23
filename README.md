@@ -1,182 +1,223 @@
-# 💊 Assignment 09: Pharmacy & Healthcare Store API with RBAC & JWT
-> **Track:** Backend Development | **Level:** Intermediate | **Estimated Time:** 6–8 Hours  
-> **Tech Stack:** Node.js, Express.js, MongoDB Atlas, Mongoose, JWT, bcryptjs, dotenv
+# Assignment 09: Pharmacy & Healthcare Store API with RBAC & JWT
+
+**Student Name:** Aditya Kumbhar  
+**Roll No / ID:** 187  
+**Track:** Backend Development  
 
 ---
 
-## 📌 1. Objective & Overview
+## 📌 Project Overview
 
-Build a production-grade **Pharmacy Management & Medicine Ordering REST API** using **MongoDB Atlas** and **JWT-based Role-Based Access Control (RBAC)**. Students will model multi-role user workflows across three user tiers: `Admin`, `Pharmacist`, and `Customer`, enforcing strict permission barriers for sensitive operations like adding restricted prescription medicines and approving drug orders.
-
-### Key Learning Outcomes:
-- Designing complex schema relationships with nested order subdocuments and prescription verification flags.
-- Advanced JWT authorization middleware capable of handling multi-role hierarchies.
-- MongoDB Atlas aggregation for low-stock inventory alerts and expiring medicine queries.
-- Atomic stock decrements when customer orders are marked as `approved`.
-- Secure storage of environment secrets and clean MVC layered design.
+A Pharmacy Management & M
+edicine Ordering REST API built with Node.js, Express.js, MongoDB (Mongoose), and JSON Web Tokens (JWT) with Role-Based Access Control (RBAC).
+The system supports thr ee user roles:
+1. **Customer**: Browse medicines, place orders, view order history.
+2. **Pharmacist**: Manage medicine catalog, view orders, approve/reject orders (triggers automatic stock deduction), and check expiring medicines.
+3. **Admin**: Full access including staff registration, medicine deletion, inventory updates, and order management.
 
 ---
 
-## 🛠️ 2. Tech Stack & Dependencies
+## 🛠️ Tech Stack & Dependencies
 
-```bash
-# Initialize Node.js project
-npm init -y
-
-# Install dependencies
-npm install express mongoose jsonwebtoken bcryptjs dotenv cors
-
-# Install development tools
-npm install -D nodemon
-```
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Database:** MongoDB / MongoDB Atlas (Mongoose ODM)
+- **Authentication & Security:** JWT (jsonwebtoken), bcryptjs, cors, dotenv
+- **Development Tool:** nodemon
 
 ---
 
-## 👥 3. Role-Based Permission Matrix
-
-| Endpoint / Action | Customer | Pharmacist | Admin |
-|---|:---:|:---:|:---:|
-| `POST /api/auth/register` (Customer) | ✅ | ❌ | ❌ |
-| `POST /api/auth/register-staff` (Admin key) | ❌ | ✅ | ✅ |
-| `GET /api/medicines` (Browse catalog) | ✅ | ✅ | ✅ |
-| `POST /api/medicines` (Add medicine) | ❌ | ✅ | ✅ |
-| `PUT /api/medicines/:id` (Update stock/price) | ❌ | ✅ | ✅ |
-| `DELETE /api/medicines/:id` (Remove drug) | ❌ | ❌ | ✅ |
-| `POST /api/orders` (Place order) | ✅ | ❌ | ❌ |
-| `PATCH /api/orders/:id/status` (Approve/Reject) | ❌ | ✅ | ✅ |
-| `GET /api/reports/expiring-soon` | ❌ | ✅ | ✅ |
-
----
-
-## 🗄️ 4. Mongoose Schemas
-
-### 1. Medicine Schema (`models/Medicine.js`)
-```javascript
-const mongoose = require('mongoose');
-
-const medicineSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  brand: { type: String, required: true },
-  category: { type: String, required: true }, // e.g., "Antibiotic", "Analgesic"
-  dosageForm: { type: String, enum: ['Tablet', 'Capsule', 'Syrup', 'Injection'], required: true },
-  price: { type: Number, required: true, min: 0 },
-  stockQuantity: { type: Number, required: true, min: 0 },
-  requiresPrescription: { type: Boolean, default: false },
-  expiryDate: { type: Date, required: true }
-}, { timestamps: true });
-
-module.exports = mongoose.model('Medicine', medicineSchema);
-```
-
-### 2. Order Schema (`models/Order.js`)
-```javascript
-const mongoose = require('mongoose');
-
-const orderSchema = new mongoose.Schema({
-  customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  items: [{
-    medicine: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine', required: true },
-    quantity: { type: Number, required: true, min: 1 },
-    unitPrice: { type: Number, required: true }
-  }],
-  totalAmount: { type: Number, required: true },
-  prescriptionNotes: { type: String },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'dispensed', 'cancelled'],
-    default: 'pending'
-  }
-}, { timestamps: true });
-
-module.exports = mongoose.model('Order', orderSchema);
-```
-
----
-
-## 📋 5. API Endpoints Specification
-
-### 🔐 Auth Routes
-
-| Method | Endpoint | Access Level | Description |
-|---|---|:---:|---|
-| `POST` | `/api/auth/register` | Public | Register customer account |
-| `POST` | `/api/auth/login` | Public | Login with email/password, receive JWT |
-| `GET` | `/api/auth/profile` | Authenticated | Get current user's profile |
-
-### 💊 Medicine Inventory Routes
-
-| Method | Endpoint | Access Level | Description |
-|---|---|:---:|---|
-| `GET` | `/api/medicines` | Public | List medicines with search & category filter |
-| `GET` | `/api/medicines/expiring` | Pharmacist / Admin | Query drugs expiring in the next 30 days |
-| `POST` | `/api/medicines` | Pharmacist / Admin | Add new medicine |
-| `PUT` | `/api/medicines/:id` | Pharmacist / Admin | Update stock or pricing |
-| `DELETE` | `/api/medicines/:id` | Admin Only | Delete drug from database |
-
-### 📦 Order & Prescription Routes
-
-| Method | Endpoint | Access Level | Description |
-|---|---|:---:|---|
-| `POST` | `/api/orders` | Customer | Place an order for medicines |
-| `GET` | `/api/orders/my-orders` | Customer | View customer order history |
-| `GET` | `/api/orders` | Pharmacist / Admin | List all pending & processed orders |
-| `PATCH` | `/api/orders/:id/status` | Pharmacist / Admin | Update status to `approved`/`dispensed` (Triggers stock deduction) |
-
----
-
-## 🏗️ 6. Project Directory Architecture
+## 📁 Project Structure
 
 ```text
-assignment-09-pharmacy-api/
+Aditya Kumbhar 187, assignment 9/
 ├── config/
-│   └── db.js                 # MongoDB Atlas connection
+│   └── db.js                 # MongoDB connection
 ├── controllers/
-│   ├── authController.js     # JWT & password logic
-│   ├── medicineController.js # Medicine CRUD & expiring stock query
-│   └── orderController.js    # Order lifecycle & inventory deductions
+│   ├── authController.js     # User registration, login & profile
+│   ├── medicineController.js # Medicine CRUD & expiring stock queries
+│   └── orderController.js    # Order lifecycle & atomic inventory deduction
 ├── middleware/
-│   ├── auth.js               # Verify JWT
-│   └── roleGuard.js          # authorizeRoles('admin', 'pharmacist')
+│   ├── auth.js               # JWT verification
+│   └── roleGuard.js          # Role-based access control middleware
 ├── models/
-│   ├── Medicine.js
-│   ├── Order.js
-│   └── User.js
+│   ├── Medicine.js           # Medicine Mongoose schema
+│   ├── Order.js              # Order Mongoose schema
+│   └── User.js               # User Mongoose schema (Customer, Pharmacist, Admin)
 ├── routes/
-│   ├── authRoutes.js
-│   ├── medicineRoutes.js
-│   └── orderRoutes.js
-├── .env.example              # MONGO_URI, JWT_SECRET, PORT
-├── .gitignore
-├── package.json
-├── server.js
-└── README.md
+│   ├── authRoutes.js         # /api/auth routes
+│   ├── medicineRoutes.js     # /api/medicines routes
+│   ├── orderRoutes.js        # /api/orders routes
+│   └── reportRoutes.js       # /api/reports routes
+├── .env.example              # Sample environment variables
+├── .env                      # Local environment configuration
+├── .gitignore                # Git ignore rules
+├── package.json              # Project metadata & dependencies
+├── Pharmacy_API.postman_collection.json # Ready-to-import Postman Collection
+├── README.md                 # Project documentation
+└── server.js                 # Express application entrypoint
 ```
 
 ---
 
-## 🧪 7. Testing & Verification Guide
+## 👥 Role-Based Permission Matrix
 
-1. Create a customer, a pharmacist, and an admin user.
-2. Attempt to add a medicine with a customer JWT; confirm the response is `403 Forbidden`.
-3. Add a medicine using the pharmacist token.
-4. Place an order as a customer, then approve the order as a pharmacist. Verify that the medicine `stockQuantity` is automatically decremented.
+| Endpoint / Action | Method | Customer | Pharmacist | Admin |
+|---|:---:|:---:|:---:|:---:|
+| `/api/auth/register` (Customer Register) | POST | ✅ | ❌ | ❌ |
+| `/api/auth/register-staff` (Staff Register) | POST | ❌ | ✅ | ✅ |
+| `/api/auth/login` | POST | ✅ | ✅ | ✅ |
+| `/api/auth/profile` | GET | ✅ | ✅ | ✅ |
+| `/api/medicines` (Catalog) | GET | ✅ | ✅ | ✅ |
+| `/api/medicines/:id` | GET | ✅ | ✅ | ✅ |
+| `/api/medicines` (Add Drug) | POST | ❌ | ✅ | ✅ |
+| `/api/medicines/:id` (Update Stock/Price) | PUT | ❌ | ✅ | ✅ |
+| `/api/medicines/:id` (Delete Drug) | DELETE | ❌ | ❌ | ✅ |
+| `/api/medicines/expiring` (Expiring stock) | GET | ❌ | ✅ | ✅ |
+| `/api/reports/expiring-soon` | GET | ❌ | ✅ | ✅ |
+| `/api/orders` (Place Order) | POST | ✅ | ❌ | ❌ |
+| `/api/orders/my-orders` | GET | ✅ | ❌ | ❌ |
+| `/api/orders` (View All Orders) | GET | ❌ | ✅ | ✅ |
+| `/api/orders/:id/status` (Approve/Reject) | PATCH | ❌ | ✅ | ✅ |
 
 ---
 
-## 📊 8. Grading Rubric (100 Marks)
+## 🚀 Setup & Installation
 
-| Evaluation Component | Marks |
-|---|:---:|
-| **MongoDB Atlas Setup & Schema Modeling** | 25 |
-| **JWT RBAC Middleware Hierarchy (Admin/Pharmacist/Customer)** | 25 |
-| **Medicine Inventory CRUD & Expiring Stock Filters** | 20 |
-| **Order Processing & Atomic Stock Deduction Logic** | 15 |
-| **Architecture, Error Handling & Code Quality** | 15 |
-| **Total Marks** | **100** |
+### 1. Clone or Open the Project
+```bash
+cd "Aditya Kumbhar 187, assignment 9"
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Setup Environment Variables
+Create a `.env` file in the root directory (or copy from `.env.example`):
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/pharmacy_db
+JWT_SECRET=supersecretjwtkey123
+JWT_EXPIRES_IN=7d
+ADMIN_SECRET_KEY=adminsecretkey123
+```
+
+### 4. Run the Server
+```bash
+# Production mode
+npm start
+
+# Development mode (with nodemon auto-restart)
+npm run dev
+```
 
 ---
 
-## 📤 9. Submission Guidelines
+## 📋 API Endpoints & Sample Payloads
 
-- Submit your GitHub repository: `itm-assignment-09-pharmacy-api`.
-- Include a Postman Collection demonstrating all 3 user roles with token headers.
+### 1. Auth Endpoints
+
+#### Register Customer
+`POST /api/auth/register`
+```json
+{
+  "name": "Aditya Customer",
+  "email": "customer@example.com",
+  "password": "password123"
+}
+```
+
+#### Register Staff (Pharmacist / Admin)
+`POST /api/auth/register-staff`
+```json
+{
+  "name": "Sarah Pharmacist",
+  "email": "pharmacist@example.com",
+  "password": "password123",
+  "role": "Pharmacist",
+  "adminKey": "adminsecretkey123"
+}
+```
+
+#### Login
+`POST /api/auth/login`
+```json
+{
+  "email": "customer@example.com",
+  "password": "password123"
+}
+```
+
+---
+
+### 2. Medicine Endpoints
+
+#### Get All Medicines / Search
+`GET /api/medicines?search=Paracetamol&category=Analgesic`
+
+#### Add Medicine (Pharmacist / Admin)
+`POST /api/medicines`  
+*Header:* `Authorization: Bearer <token>`
+```json
+{
+  "name": "Amoxicillin 500mg",
+  "brand": "GSK",
+  "category": "Antibiotic",
+  "dosageForm": "Capsule",
+  "price": 15.50,
+  "stockQuantity": 100,
+  "requiresPrescription": true,
+  "expiryDate": "2026-12-31T00:00:00.000Z"
+}
+```
+
+#### Update Stock / Price (Pharmacist / Admin)
+`PUT /api/medicines/:id`  
+*Header:* `Authorization: Bearer <token>`
+```json
+{
+  "price": 18.00,
+  "stockQuantity": 120
+}
+```
+
+#### Delete Medicine (Admin Only)
+`DELETE /api/medicines/:id`  
+*Header:* `Authorization: Bearer <adminToken>`
+
+---
+
+### 3. Order Endpoints
+
+#### Place Order (Customer)
+`POST /api/orders`  
+*Header:* `Authorization: Bearer <customerToken>`
+```json
+{
+  "items": [
+    {
+      "medicine": "65f1234567890abcdef12345",
+      "quantity": 2
+    }
+  ],
+  "prescriptionNotes": "Take 1 tablet after food twice daily"
+}
+```
+
+#### Update Order Status (Pharmacist / Admin)
+`PATCH /api/orders/:id/status`  
+*Header:* `Authorization: Bearer <pharmacistToken>`
+```json
+{
+  "status": "approved"
+}
+```
+*(Note: Approving an order automatically decrements medicine stock quantities).*
+
+---
+
+## 📮 Postman Collection
+
+Import `Pharmacy_API.postman_collection.json` into Postman to test all endpoints across Customer, Pharmacist, and Admin roles.
